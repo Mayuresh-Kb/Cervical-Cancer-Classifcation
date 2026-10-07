@@ -34,6 +34,7 @@ ENV/
 checkpoints/
 weights/
 runs/
+cv_runs/
 
 # ==========================================
 # TensorBoard
@@ -53,6 +54,13 @@ archive/
 plots/
 results/
 figures/
+
+# Generated experiment reports
+*_dataset_report.csv
+*_dataset_report.json
+dataset_report.csv
+dataset_report.json
+paper_model_comparison.csv
 
 # ==========================================
 # Temporary files
