@@ -88,7 +88,7 @@ def evaluate(model, data_loader, loss_fn, device, classes):
     return summary, report, matrix, rows
 
 
-def train_model(model, train_loader, val_loader, device, classes, epochs, learning_rate, weight_decay, patience, class_weights=None):
+def train_model(model, train_loader, val_loader, device, classes, epochs, learning_rate, weight_decay, patience, class_weights=None, label=""):
     loss_fn = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", patience=3, factor=.5)
@@ -99,10 +99,14 @@ def train_model(model, train_loader, val_loader, device, classes, epochs, learni
             optimizer.zero_grad(set_to_none=True); loss = loss_fn(model(x.to(device, non_blocking=True)), y.to(device, non_blocking=True)); loss.backward(); optimizer.step(); total += loss.item() * len(y)
         validation, _, _, _ = evaluate(model, val_loader, loss_fn, device, classes); scheduler.step(validation["macro_f1"])
         history.append({"epoch": epoch, "train_loss": total / len(train_loader.dataset), "learning_rate": optimizer.param_groups[0]["lr"], **{f"val_{k}": v for k, v in validation.items()}})
+        prefix = f"{label} " if label else ""
+        print(f"{prefix}epoch {epoch:03d}/{epochs}: train_loss={total / len(train_loader.dataset):.4f}, val_macro_f1={validation['macro_f1']:.4f}", flush=True)
         if validation["macro_f1"] > best:
             best, stale, checkpoint = validation["macro_f1"], 0, {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
         else: stale += 1
-        if stale >= patience: break
+        if stale >= patience:
+            print(f"{prefix}early stopping at epoch {epoch} (patience={patience})", flush=True)
+            break
     model.load_state_dict(checkpoint)
     return history, epoch
 

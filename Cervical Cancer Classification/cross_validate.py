@@ -49,7 +49,8 @@ def main():
         train_loader, val_loader, test_loader = loader(train_set, args.batch_size, True, args.workers), loader(val_set, args.batch_size, False, args.workers), loader(test_set, args.batch_size, False, args.workers)
         model = build_model(args.model, len(classes), args.pretrained).to(device)
         train_y = labels[actual_train]; counts = np.bincount(train_y, minlength=len(classes)); weights = torch.tensor(len(train_y) / (len(classes) * counts), dtype=torch.float32, device=device) if args.class_weights else None
-        history, stopped = train_model(model, train_loader, val_loader, device, classes, args.epochs, args.learning_rate, args.weight_decay, args.patience, weights)
+        print(f"Starting fold {fold}/{args.folds}: {len(train_set)} train, {len(val_set)} validation, {len(test_set)} test images", flush=True)
+        history, stopped = train_model(model, train_loader, val_loader, device, classes, args.epochs, args.learning_rate, args.weight_decay, args.patience, weights, label=f"fold {fold}")
         metrics, report, matrix, predictions = evaluate(model, test_loader, torch.nn.CrossEntropyLoss(weight=weights), device, classes)
         fold_dir = run / f"fold_{fold}"; fold_dir.mkdir(); torch.save({"model": args.model, "classes": classes, "state_dict": model.state_dict()}, fold_dir / "best_checkpoint.pt")
         write_csv(fold_dir / "history.csv", history); write_csv(fold_dir / "classification_report.csv", report); write_csv(fold_dir / "predictions.csv", predictions); save_confusion_matrix(matrix, classes, fold_dir / "confusion_matrix.png")
